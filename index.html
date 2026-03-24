@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>棋譜一手表示</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      padding: 12px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    #moveDisplay {
+      font-size: 48px;
+      font-weight: bold;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .small {
+      font-size: 14px;
+      color: #aaa;
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      background: #1a1a1a;
+      color: white;
+      border: 1px solid #444;
+      padding: 8px;
+    }
+    button, input[type="file"] {
+      font-size: 16px;
+    }
+    #tapArea {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <input type="file" id="fileInput" accept=".kif,.ki2,.txt" />
+    <button id="loadTextBtn">テキスト読込</button>
+    <button id="prevBtn">戻る</button>
+    <button id="nextBtn">次へ</button>
+    <button id="resetBtn">最初へ</button>
+    <span class="small" id="status">未読込</span>
+  </header>
+
+  <section style="padding:12px;">
+    <textarea id="kifText" placeholder="ここにKIFを貼り付けてもOK"></textarea>
+  </section>
+
+  <main id="tapArea">
+    <div>
+      <div class="small" id="moveNo">0手目</div>
+      <div id="moveDisplay">ここに指し手を表示</div>
+      <div class="small">画面タップで次の一手</div>
+    </div>
+  </main>
+
+  <script>
+    let moves = [];
+    let index = 0;
+
+    function parseKif(text) {
+      const lines = text.split(/\r?\n/);
+      const result = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        // 例:
+        // 1 ７六歩(77)
+        // 2 ３四歩(33)
+        // 12 同　歩(23)
+        const m = trimmed.match(/^(\d+)\s+(.+?)\s*(\(|$)/);
+        if (!m) continue;
+
+        const moveNo = parseInt(m[1], 10);
+        let moveText = m[2].trim();
+
+        // 終局表現は除外したければここで弾く
+        if (moveText.includes("投了") || moveText.includes("詰み") || moveText.includes("千日手")) {
+          result.push(moveText);
+          continue;
+        }
+
+        const prefix = (moveNo % 2 === 1) ? "▲" : "△";
+        result.push(prefix + moveText);
+      }
+
+      return result;
+    }
+
+    function render() {
+      const moveDisplay = document.getElementById("moveDisplay");
+      const moveNo = document.getElementById("moveNo");
+      const status = document.getElementById("status");
+
+      if (moves.length === 0) {
+        moveDisplay.textContent = "ここに指し手を表示";
+        moveNo.textContent = "0手目";
+        status.textContent = "未読込";
+        return;
+      }
+
+      if (index < 0) index = 0;
+      if (index >= moves.length) index = moves.length - 1;
+
+      moveDisplay.textContent = moves[index];
+      moveNo.textContent = `${index + 1}手目`;
+      status.textContent = `${index + 1} / ${moves.length}`;
+    }
+
+    async function loadFromFile(file) {
+      const text = await file.text();
+      moves = parseKif(text);
+      index = 0;
+      render();
+    }
+
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      await loadFromFile(file);
+    });
+
+    document.getElementById("loadTextBtn").addEventListener("click", () => {
+      const text = document.getElementById("kifText").value;
+      moves = parseKif(text);
+      index = 0;
+      render();
+    });
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      if (moves.length === 0) return;
+      index = Math.max(0, index - 1);
+      render();
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      if (moves.length === 0) return;
+      index = Math.min(moves.length - 1, index + 1);
+      render();
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (moves.length === 0) return;
+      index = 0;
+      render();
+    });
+
+    document.getElementById("tapArea").addEventListener("click", () => {
+      if (moves.length === 0) return;
+      if (index < moves.length - 1) {
+        index++;
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
