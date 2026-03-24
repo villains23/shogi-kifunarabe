@@ -1,335 +1,672 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>棋譜トレーナー</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棋譜トレーナー</title>
+  <style>
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+      background:#111;
+      color:white;
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+    }
 
-<style>
+    header{
+      padding:12px;
+      background:#181818;
+      border-bottom:1px solid #333;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
 
-body{
-margin:0;
-font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
-background:#111;
-color:white;
-display:flex;
-flex-direction:column;
-min-height:100vh;
-}
+    button,input[type="text"],input[type="file"]{
+      font-size:16px;
+    }
 
-header{
-padding:12px;
-background:#181818;
-border-bottom:1px solid #333;
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-}
+    button{
+      padding:8px 12px;
+      border:none;
+      border-radius:10px;
+      background:#2b2b2b;
+      color:white;
+      cursor:pointer;
+    }
 
-button{
-padding:8px 12px;
-border:none;
-border-radius:10px;
-background:#2b2b2b;
-color:white;
-font-size:16px;
-}
+    button:hover{
+      background:#3a3a3a;
+    }
 
-button:hover{
-background:#3a3a3a;
-}
+    button:disabled{
+      opacity:0.45;
+      cursor:not-allowed;
+    }
 
-main{
-flex:1;
-display:flex;
-justify-content:center;
-align-items:center;
-text-align:center;
-padding:20px;
-}
+    #nameInput{
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #444;
+      background:#1c1c1c;
+      color:white;
+      min-width:220px;
+    }
 
-#moveDisplay{
-font-size:60px;
-font-weight:700;
-margin-bottom:20px;
-}
+    .pasteAreaWrap{
+      padding:12px;
+      border-bottom:1px solid #2a2a2a;
+      background:#151515;
+    }
 
-#moveNo{
-color:#aaa;
-margin-bottom:10px;
-}
+    #kifText{
+      width:100%;
+      min-height:180px;
+      box-sizing:border-box;
+      resize:vertical;
+      background:#1c1c1c;
+      color:white;
+      border:1px solid #444;
+      border-radius:12px;
+      padding:12px;
+      font-size:14px;
+      line-height:1.6;
+    }
 
-.footerButtons{
-display:flex;
-gap:10px;
-justify-content:center;
-margin-top:20px;
-}
+    .pasteButtons{
+      margin-top:10px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
 
-.resultPanel{
-margin-top:20px;
-background:#1a1a1a;
-padding:15px;
-border-radius:10px;
-}
+    main{
+      flex:1;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      text-align:center;
+      padding:20px;
+    }
 
-</style>
+    .wrap{
+      width:100%;
+      max-width:900px;
+    }
+
+    #moveDisplay{
+      font-size:clamp(40px,8vw,72px);
+      font-weight:700;
+      margin:18px 0 10px;
+      word-break:break-word;
+    }
+
+    #moveNo{
+      color:#aaa;
+      margin-top:8px;
+      margin-bottom:10px;
+      font-size:18px;
+    }
+
+    .sub{
+      color:#999;
+      font-size:14px;
+      margin-bottom:8px;
+      line-height:1.7;
+    }
+
+    .footerButtons{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      margin-top:20px;
+      flex-wrap:wrap;
+    }
+
+    .panel{
+      margin-top:20px;
+      background:#1a1a1a;
+      padding:15px;
+      border-radius:12px;
+      border:1px solid #333;
+      text-align:left;
+    }
+
+    .panelTitle{
+      font-weight:700;
+      margin-bottom:10px;
+      color:#ddd;
+    }
+
+    #summary, #historyList{
+      color:#bbb;
+      line-height:1.8;
+      font-size:14px;
+    }
+
+    .historyItem{
+      border-top:1px solid #2d2d2d;
+      padding:12px 0;
+    }
+
+    .historyItem:first-child{
+      border-top:none;
+      padding-top:0;
+    }
+
+    .historyButtons{
+      margin-top:8px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .smallBtn{
+      font-size:13px;
+      padding:6px 10px;
+      border-radius:8px;
+    }
+
+    .notice{
+      min-height:1.6em;
+      color:#9fd39f;
+      margin-top:10px;
+      font-size:14px;
+    }
+
+    .debug{
+      font-size:12px;
+      color:#777;
+      margin-top:10px;
+      white-space:pre-wrap;
+      word-break:break-all;
+    }
+  </style>
 </head>
-
 <body>
 
 <header>
-
-<input type="file" id="fileInput">
-
-<button onclick="prevMove()">戻る</button>
-<button onclick="nextMove()">次へ</button>
-<button onclick="resetMoves()">最初へ</button>
-<button onclick="toggleAnswer()">表示/非表示</button>
-
+  <input type="file" id="fileInput" accept=".kif,.ki2,.txt">
+  <input type="text" id="nameInput" placeholder="棋譜名を入力">
+  <button onclick="loadFromTextarea()">テキスト読込</button>
+  <button onclick="prevMove()">戻る</button>
+  <button onclick="nextMove()">次へ</button>
+  <button onclick="resetMoves()">最初へ</button>
+  <button onclick="toggleAnswer()">表示/非表示</button>
+  <button onclick="clearJudges()">判定リセット</button>
+  <button id="saveRecordBtn" onclick="saveRecord()" disabled>記録を保存</button>
 </header>
 
+<div class="pasteAreaWrap">
+  <textarea id="kifText" placeholder="ここに棋譜をそのまま貼り付けてください。
+KIFや将棋ウォーズの解析付きテキストでもOKです。"></textarea>
+  <div class="pasteButtons">
+    <button onclick="loadFromTextarea()">このテキストを読み込む</button>
+    <button onclick="clearTextarea()">貼り付け欄をクリア</button>
+  </div>
+</div>
+
 <main>
+  <div class="wrap" id="tapArea">
+    <div id="moveNo">0手目</div>
+    <div id="moveDisplay">棋譜を読み込んでください</div>
+    <div class="sub">クリック / Enter / . / &gt; で次へ　, / &lt; で戻る　Spaceで表示切替　1/2/3で判定</div>
 
-<div>
+    <div class="footerButtons">
+      <button onclick="judgeMove('correct')" id="correctBtn">当たり</button>
+      <button onclick="judgeMove('close')" id="closeBtn">惜しい</button>
+      <button onclick="judgeMove('wrong')" id="wrongBtn">外れ</button>
+    </div>
 
-<div id="moveNo">0手目</div>
+    <div class="notice" id="notice"></div>
 
-<div id="moveDisplay">棋譜を読み込んでください</div>
+    <div class="panel">
+      <div class="panelTitle">今回の成績</div>
+      <div id="summary">未記録</div>
+    </div>
 
-<div class="footerButtons">
+    <div class="panel">
+      <div class="panelTitle">保存済み履歴</div>
+      <div id="historyList">まだ保存された記録はありません。</div>
+    </div>
 
-<button onclick="judgeMove('correct')" id="correctBtn">当たり</button>
-<button onclick="judgeMove('close')" id="closeBtn">惜しい</button>
-<button onclick="judgeMove('wrong')" id="wrongBtn">外れ</button>
-
-</div>
-
-<div class="resultPanel">
-
-<div id="summary">未記録</div>
-
-</div>
-
-</div>
-
+    <div class="debug" id="debug"></div>
+  </div>
 </main>
 
 <script>
+let moves = [];
+let index = -1;
+let judges = [];
+let answerVisible = true;
+let currentSourceName = "無題の棋譜";
 
-let moves=[]
-let index=-1
-let judges=[]
-let answerVisible=true
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+
+function normalizeLine(line){
+  return line
+    .replace(/\r/g,"")
+    .replace(/\u3000/g," ")
+    .trim();
+}
+
+function cleanMoveText(moveText){
+  let text = moveText.trim();
+  text = text.replace(/\s+\(.*/,"").trim();
+  text = text.replace(/\s+（.*/,"").trim();
+  text = text.replace(/^同\s+/,"同");
+  return text;
+}
+
+function isEndMove(text){
+  const endWords = [
+    "投了","詰み","千日手","持将棋","中断",
+    "切れ負け","反則勝ち","反則負け","入玉勝ち"
+  ];
+  return endWords.includes(text);
+}
 
 function parseKif(text){
+  let lines = text.split("\n");
+  let result = [];
 
-let lines=text.split("\n")
-let result=[]
+  for(let line of lines){
+    line = normalizeLine(line);
 
-for(let line of lines){
+    if(!line) continue;
+    if(line.startsWith("*")) continue;
+    if(line.startsWith("**")) continue;
+    if(line.startsWith("#")) continue;
+    if(line.startsWith("'")) continue;
 
-line=line.trim()
+    if(line.startsWith("開始日時")) continue;
+    if(line.startsWith("終了日時")) continue;
+    if(line.startsWith("場所")) continue;
+    if(line.startsWith("手合割")) continue;
+    if(line.startsWith("先手")) continue;
+    if(line.startsWith("後手")) continue;
+    if(line.startsWith("手数----指手")) continue;
 
-if(!line)continue
-if(line.startsWith("*"))continue
-if(line.startsWith("**"))continue
-if(line.startsWith("#"))continue
+    const m = line.match(/^(\d+)\s+(.+)$/);
+    if(!m) continue;
 
-let m=line.match(/^(\d+)\s+(.+)/)
+    let moveNo = parseInt(m[1], 10);
+    let moveText = cleanMoveText(m[2]);
 
-if(!m)continue
+    if(!moveText) continue;
+    if(/^まで\d+手で/.test(moveText)) continue;
+    if(moveText.startsWith("変化")) continue;
 
-let moveNo=parseInt(m[1])
-let moveText=m[2].replace(/\s+\(.*/,"")
+    if(isEndMove(moveText)){
+      result.push(moveText);
+      continue;
+    }
 
-let prefix=moveNo%2? "▲":"△"
+    let prefix = moveNo % 2 ? "▲" : "△";
+    result.push(prefix + moveText);
+  }
 
-result.push(prefix+moveText)
-
+  return result;
 }
 
-return result
-
+function clearTextarea(){
+  document.getElementById("kifText").value = "";
+  setNotice("貼り付け欄をクリアしました。");
 }
 
-function render(){
+function loadFromTextarea(){
+  const text = document.getElementById("kifText").value.trim();
+  if(!text){
+    setNotice("貼り付け欄に棋譜が入っていません。");
+    return;
+  }
 
-let moveDisplay=document.getElementById("moveDisplay")
-let moveNo=document.getElementById("moveNo")
+  moves = parseKif(text);
+  index = -1;
+  judges = new Array(moves.length).fill(null);
+  answerVisible = true;
+  currentSourceName = getEditedName() || "貼り付けた棋譜";
+  updateNameInput();
 
-if(index<0){
+  if(moves.length === 0){
+    setNotice("指し手を読み取れませんでした。");
+  }else{
+    setNotice(`テキストから ${moves.length} 手を読み込みました。`);
+  }
 
-moveDisplay.textContent="タップして開始"
-moveNo.textContent="0手目"
-
-}else{
-
-moveNo.textContent=(index+1)+"手目"
-
-moveDisplay.textContent=answerVisible?moves[index]:"？？？"
-
+  render();
 }
 
-updateSummary()
+async function handleFile(file){
+  const text = await file.text();
+  document.getElementById("kifText").value = text;
 
+  moves = parseKif(text);
+  index = -1;
+  judges = new Array(moves.length).fill(null);
+  answerVisible = true;
+
+  const baseName = file.name ? file.name.replace(/\.[^.]+$/, "") : "アップロードした棋譜";
+  currentSourceName = getEditedName() || baseName;
+  updateNameInput();
+
+  if(moves.length === 0){
+    setNotice("ファイルを読み込みましたが、指し手を読み取れませんでした。");
+  }else{
+    setNotice(`ファイルから ${moves.length} 手を読み込みました。`);
+  }
+
+  render();
+}
+
+function getEditedName(){
+  return document.getElementById("nameInput").value.trim();
+}
+
+function updateNameInput(){
+  document.getElementById("nameInput").value = currentSourceName;
 }
 
 function nextMove(){
-
-if(index<moves.length-1){
-
-index++
-answerVisible=true
-render()
-
-}
-
+  if(index < moves.length - 1){
+    index++;
+    answerVisible = true;
+    render();
+  }
 }
 
 function prevMove(){
-
-if(index>-1){
-
-index--
-render()
-
-}
-
+  if(index > -1){
+    index--;
+    render();
+  }
 }
 
 function resetMoves(){
-
-index=-1
-render()
-
+  index = -1;
+  render();
 }
 
 function toggleAnswer(){
-
-answerVisible=!answerVisible
-render()
-
+  if(index < 0 || moves.length === 0) return;
+  answerVisible = !answerVisible;
+  render();
 }
 
 function judgeMove(type){
+  if(index < 0 || index >= moves.length) return;
+  if(judges[index]) return;
+  judges[index] = type;
+  render();
+}
 
-if(index<0)return
-
-if(judges[index])return
-
-judges[index]=type
-
-render()
-
+function clearJudges(){
+  if(moves.length === 0) return;
+  judges = new Array(moves.length).fill(null);
+  setNotice("判定をリセットしました。");
+  render();
 }
 
 function getCounts(){
+  let correct = 0;
+  let close = 0;
+  let wrong = 0;
 
-let correct=0
-let close=0
-let wrong=0
+  for(let j of judges){
+    if(j === "correct") correct++;
+    if(j === "close") close++;
+    if(j === "wrong") wrong++;
+  }
 
-for(let j of judges){
-
-if(j==="correct")correct++
-if(j==="close")close++
-if(j==="wrong")wrong++
-
+  return { correct, close, wrong };
 }
 
-return{correct,close,wrong}
+function rate(n, total){
+  if(total === 0) return "0.0";
+  return ((n / total) * 100).toFixed(1);
+}
 
+function getSummaryObject(){
+  const c = getCounts();
+  const judgedTotal = c.correct + c.close + c.wrong;
+
+  return {
+    sourceName: getEditedName() || currentSourceName || "無題の棋譜",
+    totalMoves: moves.length,
+    judgedTotal,
+    correct: c.correct,
+    close: c.close,
+    wrong: c.wrong,
+    correctRate: rate(c.correct, judgedTotal),
+    closeRate: rate(c.close, judgedTotal),
+    wrongRate: rate(c.wrong, judgedTotal)
+  };
+}
+
+function isFinished(){
+  return moves.length > 0 && index === moves.length - 1;
+}
+
+function updateButtons(){
+  const canJudge = index >= 0 && index < moves.length;
+  const alreadyJudged = canJudge && !!judges[index];
+
+  document.getElementById("correctBtn").disabled = !canJudge || alreadyJudged;
+  document.getElementById("closeBtn").disabled = !canJudge || alreadyJudged;
+  document.getElementById("wrongBtn").disabled = !canJudge || alreadyJudged;
+  document.getElementById("saveRecordBtn").disabled = !isFinished();
 }
 
 function updateSummary(){
+  const s = document.getElementById("summary");
+  const d = getSummaryObject();
 
-let s=document.getElementById("summary")
-
-let c=getCounts()
-
-let total=c.correct+c.close+c.wrong
-
-if(total===0){
-
-s.innerHTML="未記録"
-return
-
+  s.innerHTML =
+    `棋譜名: ${escapeHtml(d.sourceName)}<br>` +
+    `総手数: ${d.totalMoves}<br>` +
+    `記録済み: ${d.judgedTotal}手<br>` +
+    `当たり: ${d.correct}<br>` +
+    `惜しい: ${d.close}<br>` +
+    `外れ: ${d.wrong}<br>` +
+    `当たり率: ${d.correctRate}%<br>` +
+    `惜しい率: ${d.closeRate}%<br>` +
+    `外れ率: ${d.wrongRate}%`;
 }
 
-let correctRate=(c.correct/total*100).toFixed(1)
-let closeRate=(c.close/total*100).toFixed(1)
-let wrongRate=(c.wrong/total*100).toFixed(1)
-
-s.innerHTML=
-
-`当たり: ${c.correct}<br>
-惜しい: ${c.close}<br>
-外れ: ${c.wrong}<br>
-当たり率: ${correctRate}%<br>
-惜しい率: ${closeRate}%<br>
-外れ率: ${wrongRate}%`
-
+function getHistory(){
+  const saved = localStorage.getItem("kifuTrainerHistory");
+  if(!saved) return [];
+  try{
+    const parsed = JSON.parse(saved);
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(e){
+    return [];
+  }
 }
 
-document.getElementById("fileInput").addEventListener("change",async e=>{
-
-let file=e.target.files[0]
-
-let text=await file.text()
-
-moves=parseKif(text)
-
-judges=new Array(moves.length).fill(null)
-
-index=-1
-
-render()
-
-})
-
-document.addEventListener("keydown",function(e){
-
-if(e.key==="Enter"||e.key==="."||e.key===">"){
-
-nextMove()
-
+function saveHistory(history){
+  localStorage.setItem("kifuTrainerHistory", JSON.stringify(history));
 }
 
-if(e.key===","||e.key==="<"){
+function saveRecord(){
+  if(!isFinished()) return;
 
-prevMove()
+  currentSourceName = getEditedName() || currentSourceName || "無題の棋譜";
+  updateNameInput();
 
+  const data = getSummaryObject();
+  const history = getHistory();
+
+  history.push({
+    id: cryptoRandomId(),
+    savedAt: new Date().toISOString(),
+    sourceName: data.sourceName,
+    totalMoves: data.totalMoves,
+    judgedTotal: data.judgedTotal,
+    correct: data.correct,
+    close: data.close,
+    wrong: data.wrong,
+    correctRate: data.correctRate,
+    closeRate: data.closeRate,
+    wrongRate: data.wrongRate
+  });
+
+  saveHistory(history);
+  setNotice("今回の記録を保存しました。");
+  renderHistory();
 }
 
-if(e.key===" "){
-
-toggleAnswer()
-
+function cryptoRandomId(){
+  return "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
 }
 
-if(e.key==="1"){
-
-judgeMove("correct")
-
+function formatDateTime(iso){
+  const d = new Date(iso);
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
 }
 
-if(e.key==="2"){
+function editHistoryName(id){
+  const history = getHistory();
+  const item = history.find(x => x.id === id);
+  if(!item) return;
 
-judgeMove("close")
+  const newName = prompt("保存済み棋譜名を入力してください", item.sourceName);
+  if(newName === null) return;
 
+  const trimmed = newName.trim();
+  if(!trimmed) return;
+
+  item.sourceName = trimmed;
+  saveHistory(history);
+  setNotice("保存済み棋譜名を更新しました。");
+  renderHistory();
 }
 
-if(e.key==="3"){
-
-judgeMove("wrong")
-
+function deleteHistoryItem(id){
+  let history = getHistory();
+  history = history.filter(x => x.id !== id);
+  saveHistory(history);
+  setNotice("保存済み記録を削除しました。");
+  renderHistory();
 }
 
-})
+function renderHistory(){
+  const list = document.getElementById("historyList");
+  const history = getHistory();
 
-render()
+  if(history.length === 0){
+    list.innerHTML = "まだ保存された記録はありません。";
+    return;
+  }
 
+  list.innerHTML = history.slice().reverse().map(item => `
+    <div class="historyItem">
+      保存日時: ${escapeHtml(formatDateTime(item.savedAt))}<br>
+      棋譜名: ${escapeHtml(item.sourceName)}<br>
+      総手数: ${item.totalMoves} / 記録済み: ${item.judgedTotal}<br>
+      当たり: ${item.correct} / 惜しい: ${item.close} / 外れ: ${item.wrong}<br>
+      当たり率: ${item.correctRate}% / 惜しい率: ${item.closeRate}% / 外れ率: ${item.wrongRate}%
+      <div class="historyButtons">
+        <button class="smallBtn" onclick="editHistoryName('${item.id}')">名前編集</button>
+        <button class="smallBtn" onclick="deleteHistoryItem('${item.id}')">削除</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function setNotice(text){
+  document.getElementById("notice").textContent = text;
+}
+
+function updateDebug(){
+  const d = document.getElementById("debug");
+  const c = getCounts();
+  d.textContent =
+    `読込手数: ${moves.length}\n` +
+    `現在位置: ${index + 1}\n` +
+    `当たり: ${c.correct} / 惜しい: ${c.close} / 外れ: ${c.wrong}\n` +
+    `保存可能: ${isFinished() ? "はい" : "いいえ"}`;
+}
+
+function render(){
+  const moveDisplay = document.getElementById("moveDisplay");
+  const moveNo = document.getElementById("moveNo");
+
+  if(moves.length === 0){
+    moveDisplay.textContent = "棋譜を読み込んでください";
+    moveNo.textContent = "0手目";
+  }else if(index < 0){
+    moveDisplay.textContent = "タップして開始";
+    moveNo.textContent = "0手目";
+  }else{
+    moveNo.textContent = (index + 1) + "手目";
+    moveDisplay.textContent = answerVisible ? moves[index] : "？？？";
+  }
+
+  updateButtons();
+  updateSummary();
+  renderHistory();
+  updateDebug();
+}
+
+document.getElementById("fileInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  await handleFile(file);
+});
+
+document.getElementById("nameInput").addEventListener("input", () => {
+  currentSourceName = getEditedName() || currentSourceName;
+  updateSummary();
+});
+
+document.getElementById("tapArea").addEventListener("click", (e) => {
+  const tag = e.target.tagName.toLowerCase();
+  if(tag === "button" || tag === "input" || tag === "textarea") return;
+  nextMove();
+});
+
+document.addEventListener("keydown", function(e){
+  const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+  if(tag === "input" || tag === "textarea") return;
+
+  if(e.key === "Enter" || e.key === "." || e.key === ">"){
+    nextMove();
+  }
+
+  if(e.key === "," || e.key === "<"){
+    prevMove();
+  }
+
+  if(e.key === " "){
+    e.preventDefault();
+    toggleAnswer();
+  }
+
+  if(e.key === "1"){
+    judgeMove("correct");
+  }
+
+  if(e.key === "2"){
+    judgeMove("close");
+  }
+
+  if(e.key === "3"){
+    judgeMove("wrong");
+  }
+});
+
+render();
 </script>
 
 </body>
